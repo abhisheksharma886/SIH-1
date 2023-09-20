@@ -173,6 +173,59 @@ app.listen(port,(req,res)=>{
 })
 
 
+//Api section 
+passport.use(new LocalStrategy(User.authenticate()));
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
+// Signup API
+app.post('/api/signup', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    
+    // Check if the user already exists
+    const existingUser = await User.findOne({ email });
+    
+    if (existingUser) {
+      return res.status(409).json({ message: 'User already exists' });
+    }
+
+    // Create a new user
+    const newUser = new User({ username, email });
+    
+    // Register the user with Passport (hashes the password)
+    await User.register(newUser, password);
+    
+    return res.status(201).json({ message: 'User registered successfully' });
+  } catch (err) {
+    console.error('Error registering user:', err);
+    res.status(500).json({ message: 'Error registering user' });
+  }
+});
+
+// Login API
+app.post('/api/login', passport.authenticate('local'), (req, res) => {
+  // If this function is called, authentication was successful.
+  // 'req.user' contains the authenticated user.
+  const user = req.user;
+  
+  // You can send back the user's data as a response
+  return res.status(200).json({
+    message: 'Login successful',
+    user: {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      // Include other user data as needed
+    },
+  });
+});
+
+// Logout API
+app.get('/api/logout', (req, res) => {
+  req.logout(); // Passport.js function to log the user out
+  res.status(200).json({ message: 'Logout successful' });
+});
 
 
 
